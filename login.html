@@ -1,54 +1,38 @@
+
+// este va dentro de hotspot del Mikrotik
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Conectando… | Impresto!</title>
+<title>Impresto! WiFi</title>
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#14213d;color:#fdfaf3;
-       font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;text-align:center;padding:20px}
-  h1{margin:0 0 8px;font-size:1.6rem}
-  p{margin:6px 0;color:#9aa5bd}
-  a{color:#ffd23f}
-  .rueda{width:42px;height:42px;margin:0 auto 16px;border:4px solid #1f3158;border-top-color:#ffd23f;
-         border-radius:50%;animation:g 1s linear infinite}
-  @keyframes g{to{transform:rotate(360deg)}}
-  @media (prefers-reduced-motion:reduce){.rueda{animation:none}}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#ff0000;color:#fff;font-family:Montserrat,"Segoe UI",system-ui,sans-serif;text-align:center}
+  a{color:#fff;font-weight:700}
 </style>
 </head>
 <body>
 <div>
-  <div class="rueda"></div>
-  <h1>Conectando a Impresto! WiFi…</h1>
-  <p>En un momento tendrás internet.</p>
+  <p>Cargando promociones de Impresto!…</p>
   <p><a id="manual" href="#">Si no avanza, toca aquí</a></p>
 </div>
 
 <script>
-/* ============ CONFIGURACION ============ */
-// Deben ser IGUALES al usuario creado en el MikroTik
-var USUARIO = "cliente";
-var CLAVE   = "Impresto2026";
-// Pagina a la que llega el cliente al conectarse
-var DESTINO_POR_DEFECTO = "https://www.google.com";
-/* ======================================= */
+  // >>> CAMBIAR <<<  tu usuario de GitHub y el nombre del repositorio
+  var PORTAL = "https://jkolansinsky.github.io/impresto-wifi/index.html";
 
-var p = new URLSearchParams(location.search);
+  // Estos valores los reemplaza el MikroTik automaticamente
+  var loginUrl = "$(link-login-only)";
+  var destino  = "$(link-orig)";
+  var error    = "$(error)";
 
-// Solo se acepta el login del router local (evita redirecciones a otros sitios)
-var login = p.get("login") || "";
-if (login.indexOf("http://192.168.5.1/") !== 0) login = "http://192.168.5.1/login";
+  var url = PORTAL +
+    "?login=" + encodeURIComponent(loginUrl) +
+    "&dst="   + encodeURIComponent(destino) +
+    "&error=" + encodeURIComponent(error);
 
-var dst = p.get("dst") || "";
-if (!/^https?:\/\//i.test(dst)) dst = DESTINO_POR_DEFECTO;
-
-var url = login +
-  "?username=" + encodeURIComponent(USUARIO) +
-  "&password=" + encodeURIComponent(CLAVE) +
-  "&dst="      + encodeURIComponent(dst);
-
-document.getElementById("manual").href = url;
-setTimeout(function () { location.replace(url); }, 600);
+  document.getElementById("manual").href = url;
+  window.location.replace(url);
 </script>
 </body>
 </html>
