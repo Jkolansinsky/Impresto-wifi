@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WiFi Impresto! Ruiz Cortinez</title>
+<style>
+  :root{
+    --tinta:#14213d; --tinta2:#1f3158; --papel:#fdfaf3;
+    --amarillo:#ffd23f; --magenta:#e4007c; --gris:#9aa5bd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; background:var(--tinta); color:var(--papel);
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    display:flex; justify-content:center; padding:16px;
+  }
+  main{width:100%; max-width:520px; display:flex; flex-direction:column; gap:14px}
+
+  header{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+  .marca{font-size:2rem; font-weight:800; letter-spacing:-.02em; margin:0}
+  .marca span{color:var(--magenta)}
+  .sucursal{font-size:.85rem; color:var(--gris); margin:0; text-align:right}
+
+  .aviso{margin:0; padding:10px 12px; border-radius:8px; background:var(--magenta); font-size:.9rem}
+  .aviso[hidden]{display:none}
+
+  /* Carrusel de promociones */
+  .carrusel{position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:var(--tinta2)}
+  .carrusel img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .6s}
+  .carrusel img.activa{opacity:1}
+  .puntos{position:absolute; left:0; right:0; bottom:8px; display:flex; justify-content:center; gap:6px}
+  .puntos i{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.45)}
+  .puntos i.activo{background:var(--amarillo)}
+
+  /* Video */
+  .video{position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9}
+  .video video{width:100%; height:100%; display:block; object-fit:contain}
+  .sonido{
+    position:absolute; right:10px; top:10px; border:0; border-radius:999px;
+    padding:8px 12px; font:inherit; font-size:.85rem; background:rgba(0,0,0,.6); color:#fff; cursor:pointer
+  }
+  .barra{height:6px; border-radius:3px; background:var(--tinta2); overflow:hidden}
+  .barra div{height:100%; width:0; background:var(--amarillo); transition:width .3s linear}
+
+  .estado{margin:0; font-size:.9rem; color:var(--gris); text-align:center}
+
+  #conectar{
+    border:0; border-radius:12px; padding:16px; font:inherit; font-size:1.1rem; font-weight:700;
+    background:var(--amarillo); color:var(--tinta); cursor:pointer;
+  }
+  #conectar:disabled{background:var(--tinta2); color:var(--gris); cursor:not-allowed}
+  #conectar:focus-visible, .sonido:focus-visible{outline:3px solid var(--papel); outline-offset:2px}
+
+  footer{font-size:.75rem; color:var(--gris); text-align:center; margin:4px 0 0}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 class="marca">Impresto<span>!</span></h1>
+    <p class="sucursal">WiFi gratis<br>Sucursal Ruiz Cortinez</p>
+  </header>
+
+  <p class="aviso" id="aviso" hidden></p>
+
+  <section class="carrusel" id="carrusel" aria-label="Promociones"></section>
+
+  <section class="video">
+    <video id="video" playsinline muted preload="auto"></video>
+    <button class="sonido" id="sonido" type="button">Activar sonido</button>
+  </section>
+  <div class="barra"><div id="progreso"></div></div>
+  <p class="estado" id="estado">Mira el video para activar tu internet.</p>
+
+  <button id="conectar" type="button" disabled>Conectarme a Internet</button>
+  <footer>Máximo 10 dispositivos simultáneos · Sesión de 3 horas</footer>
+</main>
+
+<script>
+/* ============ CONFIGURACION (edita aqui) ============ */
+var IMAGENES = [
+  "images/promo1.jpg",
+  "images/promo2.jpg",
+  "images/promo3.jpg"
+];
+// Video MP4 (H.264). Puede ser ruta del mismo repo o link directo https://...
+var VIDEO = "videos/promo.mp4";
+// Si el video no carga, el boton se activa despues de estos segundos
+var SEGUNDOS_RESPALDO = 20;
+/* ==================================================== */
+
+var params = new URLSearchParams(location.search);
+var $ = function (id) { return document.getElementById(id); };
+
+// Mensaje de error enviado por el MikroTik (ej. limite de 10 usuarios)
+var err = params.get("error");
+if (err) {
+  $("aviso").hidden = false;
+  $("aviso").textContent = /simultaneous|shared|limit/i.test(err)
+    ? "Se alcanzó el máximo de 10 dispositivos conectados. Intenta más tarde."
+    : "No se pudo conectar: " + err;
+}
+
+// ---- Carrusel ----
+var slides = IMAGENES.map(function (src, i) {
+  var img = new Image();
+  img.src = src; img.alt = "Promoción " + (i + 1);
+  if (i === 0) img.className = "activa";
+  $("carrusel").appendChild(img);
+  return img;
+});
+var puntos = document.createElement("div");
+puntos.className = "puntos";
+slides.forEach(function (_, i) {
+  var p = document.createElement("i");
+  if (i === 0) p.className = "activo";
+  puntos.appendChild(p);
+});
+$("carrusel").appendChild(puntos);
+var actual = 0;
+if (slides.length > 1) {
+  setInterval(function () {
+    slides[actual].classList.remove("activa");
+    puntos.children[actual].classList.remove("activo");
+    actual = (actual + 1) % slides.length;
+    slides[actual].classList.add("activa");
+    puntos.children[actual].classList.add("activo");
+  }, 4000);
+}
+
+// ---- Video + boton ----
+var video = $("video"), boton = $("conectar"), listo = false, ultimo = 0;
+
+function habilitar() {
+  if (listo) return;
+  listo = true;
+  boton.disabled = false;
+  $("progreso").style.width = "100%";
+  $("estado").textContent = "¡Listo! Toca el botón para conectarte.";
+}
+
+video.src = VIDEO;
+video.play().catch(function () {
+  $("estado").textContent = "Toca el video para reproducirlo.";
+});
+video.addEventListener("click", function () { video.play(); });
+video.addEventListener("timeupdate", function () {
+  if (!video.seeking) ultimo = video.currentTime;
+  if (video.duration) $("progreso").style.width = (video.currentTime / video.duration * 100) + "%";
+});
+// Evita adelantar el video
+video.addEventListener("seeking", function () {
+  if (video.currentTime > ultimo + 0.5) video.currentTime = ultimo;
+});
+video.addEventListener("ended", habilitar);
+video.addEventListener("error", function () {
+  $("estado").textContent = "Espera unos segundos…";
+  setTimeout(habilitar, SEGUNDOS_RESPALDO * 1000);
+});
+
+$("sonido").addEventListener("click", function () {
+  video.muted = !video.muted;
+  this.textContent = video.muted ? "Activar sonido" : "Silenciar";
+});
+
+// ---- Ir a login.html conservando los datos del router ----
+boton.addEventListener("click", function () {
+  var q = new URLSearchParams();
+  q.set("login", params.get("login") || "");
+  q.set("dst", params.get("dst") || "");
+  location.href = "login.html?" + q.toString();
+});
+</script>
+</body>
+</html>
